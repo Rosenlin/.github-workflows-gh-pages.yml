@@ -5,6 +5,6 @@ import react from '@vitejs/plugin-react'
 // 若未來要改為 GitHub Pages，請把 base 改為 '/REPO-NAME/'。
 export default defineConfig({
   plugins: [react()],
-  base: './',
+  base: '.github-workflows-gh-pages.yml',
   build: { outDir: 'dist' }
 })
