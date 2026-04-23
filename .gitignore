@@ -1,0 +1,23 @@
+node_modules/
+dist/
+dist-ssr/
+.DS_Store
+.env
+.env.local
+*.log
+.vite/
+
+# Capacitor native projects (generated locally / in CI by `npx cap add`)
+ios/App/Pods/
+ios/App/build/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+android/app/release/
+
+# Editor
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,65 @@
+name: Build iOS (unsigned .app / TestFlight)
+
+# iOS 需要 macOS runner + Xcode，請在有 Apple Developer 帳號後再填入以下 Secrets 才能真正上架：
+#   APPLE_TEAM_ID          – 10 碼 Team ID
+#   APPLE_CERTIFICATE_P12  – base64 的發佈憑證
+#   APPLE_CERTIFICATE_PWD  – 憑證密碼
+#   APPLE_PROVISIONING     – base64 的 .mobileprovision
+#   APPLE_API_KEY_ID       – App Store Connect API Key ID
+#   APPLE_API_ISSUER_ID    – App Store Connect API Issuer
+#   APPLE_API_PRIVATE_KEY  – API Key 內容（.p8）
+# 目前這份 workflow 先做「編譯 WebView 殼 + 產生未簽章 .app」的流程，
+# 證明 Capacitor → Xcode → Archive 整條鏈可在雲端跑通。
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Add iOS platform (if missing)
+        run: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+          npx cap sync ios
+
+      - name: Install CocoaPods
+        working-directory: ios/App
+        run: pod install --repo-update
+
+      - name: Build (unsigned) for simulator
+        working-directory: ios/App
+        run: |
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO | xcbeautify || true
+
+      - name: Upload .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-app
+          path: ios/App/build/Build/Products/Debug-iphonesimulator/*.app
+          if-no-files-found: warn
